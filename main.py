@@ -2,9 +2,14 @@ from pdf2image import convert_from_path
 import pytesseract
 import os
 
-PDF_FOLDER = "pdf_files"
-OUTPUT_FOLDER = "ocr_outputs"
-LANG = "tur"
+# Tesseract binary yolunu belirt
+pytesseract.pytesseract.tesseract_cmd = "/opt/homebrew/bin/tesseract"
+os.environ["TESSDATA_PREFIX"] = "/opt/homebrew/share/tessdata"
+
+
+PDF_FOLDER = "pdf_files" 
+OUTPUT_FOLDER = "ocr_outputs" 
+LANG = "tur" 
 
 # Çıktı klasörünü oluştur (yoksa)
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
