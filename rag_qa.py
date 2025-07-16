@@ -2,29 +2,30 @@ import faiss
 import numpy as np
 from sentence_transformers import SentenceTransformer
 
-# Aynı embedding modeli
-model = SentenceTransformer("all-MiniLM-L6-v2")
+# Arama motoru olarak kullandığımız GÜÇLÜ TÜRKÇE modelin burada da belirtildiğinden emin olalım.
+embedding_model_name = "emrecan/bert-base-turkish-cased-mean-nli-stsb-tr"
+print(f"Embedding modeli (arama motoru) yükleniyor: {embedding_model_name}...")
+model = SentenceTransformer(embedding_model_name)
+print("Embedding modeli başarıyla yüklendi!")
 
-# Chunk'ları da dosyadan yükleyelim
+
 with open("chunks.txt", "r", encoding="utf-8") as f:
     chunks = f.read().split("\n\n---\n\n")
 
-# FAISS index'i yükle
 index = faiss.read_index("vector_index.index")
 
-# Kullanıcıdan soru al
 query = input("Soru: ")
 query_embedding = model.encode(query).astype("float32")
 
-# En yakın 10 chunk'ı bul
+# En yakın 10 chunk'ı bul (daha fazla sonuç görmek için sayıyı artırdık)
 top_k = 10
 D, I = index.search(np.array([query_embedding]), top_k)
 
-# İlgili içerikleri getir
 relevant_chunks = [chunks[i] for i in I[0]]
 
-print("\n En alakalı içerikler:\n")
+print("\n" + "="*50)
+print("DEBUG: Soruya en alakalı bulunan metin parçaları şunlar:")
+print("="*50 + "\n")
 for i, chunk in enumerate(relevant_chunks, 1):
-    print(f"\n--- [{i}] ---\n{chunk}")
-
-# (İsteğe bağlı: Buradan sonra OpenAI ya da başka LLM ile yanıt üretilebilir)
+    print(f"\n--- Bulunan Parça [{i}] ---\n{chunk}")
+print("\n" + "="*50)

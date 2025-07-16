@@ -2,54 +2,54 @@ import os
 import faiss
 import numpy as np
 from sentence_transformers import SentenceTransformer
+import re
 
-CHUNK_SIZE = 500
-CHUNK_OVERLAP = 50
-INPUT_DIR = "ocr_outputs"
+embedding_model_name = "emrecan/bert-base-turkish-cased-mean-nli-stsb-tr"
 
-# Yerel embedding modeli
-model = SentenceTransformer("all-MiniLM-L6-v2")  # hızlı ve hafif
+TEXT_FOLDER = "ocr_outputs"
+CHUNKS_FILE = "chunks.txt"
+INDEX_FILE = "vector_index.index"
 
-def chunk_text(text, chunk_size=CHUNK_SIZE, overlap=CHUNK_OVERLAP):
-    chunks = []
-    start = 0
-    while start < len(text):
-        end = start + chunk_size
-        chunks.append(text[start:end])
-        start += chunk_size - overlap
-    return chunks
-
-def process_all_texts():
-    all_embeddings = []
+def create_chunks():
     all_chunks = []
-
-    for filename in os.listdir(INPUT_DIR):
+    print(f"'{TEXT_FOLDER}' klasöründeki metinler okunuyor...")
+    for filename in os.listdir(TEXT_FOLDER):
         if filename.endswith(".txt"):
-            with open(os.path.join(INPUT_DIR, filename), "r", encoding="utf-8") as f:
-                text = f.read()
+            with open(os.path.join(TEXT_FOLDER, filename), "r", encoding="utf-8") as f:
+                full_text = f.read()
+                
+                paragraphs = re.split(r'\n\s*\n', full_text)
+                
+                for para in paragraphs:
+                    if len(para.strip()) > 20:
+                        cleaned_para = re.sub(r'---\s*Sayfa\s*\d+\s*---', '', para).strip()
+                        if cleaned_para:
+                            all_chunks.append(cleaned_para)
+    
+    print(f"Toplam {len(all_chunks)} anlamlı metin parçası (chunk) bulundu.")
+    with open(CHUNKS_FILE, "w", encoding="utf-8") as f:
+        f.write("\n\n---\n\n".join(all_chunks))
+    print(f"Metin parçaları '{CHUNKS_FILE}' dosyasına yazıldı.")
+    return all_chunks
 
-            chunks = chunk_text(text)
-            for chunk in chunks:
-                try:
-                    emb = model.encode(chunk)
-                    all_embeddings.append(emb)
-                    all_chunks.append(chunk)
-                except Exception as e:
-                    print(f"Hata: {e}")
-
-    return all_chunks, np.array(all_embeddings).astype("float32")
-
-def build_faiss_index(embeddings):
-    dim = len(embeddings[0])
-    index = faiss.IndexFlatL2(dim)
+def create_vector_store(chunks):
+    print(f"Embedding modeli yükleniyor: '{embedding_model_name}'...")
+    model = SentenceTransformer(embedding_model_name)
+    
+    print("Metin parçaları vektörlere dönüştürülüyor (embedding)...")
+    embeddings = model.encode(chunks, show_progress_bar=True)
+    embeddings = np.array(embeddings).astype("float32")
+    
+    print("FAISS vektör veritabanı oluşturuluyor...")
+    index = faiss.IndexFlatL2(embeddings.shape[1])
     index.add(embeddings)
-    faiss.write_index(index, "vector_index.index")
-    print(" FAISS index kaydedildi: vector_index.index")
+    
+    faiss.write_index(index, INDEX_FILE)
+    print(f"Vektör veritabanı başarıyla '{INDEX_FILE}' dosyasına kaydedildi.")
 
 if __name__ == "__main__":
-    chunks, embeddings = process_all_texts()
-    build_faiss_index(embeddings)
-
-    # chunks.txt dosyasına kaydet
-    with open("chunks.txt", "w", encoding="utf-8") as f:
-        f.write("\n\n---\n\n".join(chunks))
+    chunks = create_chunks()
+    if chunks:
+        create_vector_store(chunks)
+    else:
+        print("İşlenecek metin parçası bulunamadı.")
