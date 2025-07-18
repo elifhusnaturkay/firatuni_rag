@@ -2,15 +2,11 @@
 import os
 from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings.sentence_transformer import SentenceTransformerEmbeddings
-# --- DÜZELTME BURADA ---
-# Hatalı import: from langchain_text_splitters import Document
-# Doğru import:
 from langchain_core.documents import Document
-# -------------------------
 import re
 
 TXT_FOLDER = "ocr_outputs"
-CHUNKS_FILE = "chunks.txt" # Kontrol için bu dosyayı yine de oluşturacağız
+CHUNKS_FILE = "chunks.txt"
 DB_DIR = "./db"
 
 def create_chunks_from_txt(folder_path):
@@ -22,17 +18,14 @@ def create_chunks_from_txt(folder_path):
             with open(file_path, 'r', encoding='utf-8') as f:
                 text = f.read()
             
-            # Metni çift yeni satıra göre bölerek paragrafları bul
             paragraphs = re.split(r'\n\s*\n', text)
             for para in paragraphs:
-                # Çok kısa veya boş paragrafları atla
-                if len(para.strip()) > 30: # Daha anlamlı chunklar için karakter limitini artıralım
-                    # Her paragrafı bir LangChain Document nesnesine çevir
+                if len(para.strip()) > 30:
                     all_chunks.append(Document(page_content=para.strip(), metadata={"source": filename}))
     
     print(f"Toplam {len(all_chunks)} anlamlı paragraf (chunk) bulundu.")
     
-    # Kontrol amacıyla chunk'ları bir dosyaya yazalım
+
     with open(CHUNKS_FILE, "w", encoding="utf-8") as f:
         for chunk in all_chunks:
             f.write(chunk.page_content + "\n\n---\n\n")

@@ -2,7 +2,6 @@ import faiss
 import numpy as np
 from sentence_transformers import SentenceTransformer
 
-# Arama motoru olarak kullandığımız GÜÇLÜ TÜRKÇE modelin burada da belirtildiğinden emin olalım.
 embedding_model_name = "emrecan/bert-base-turkish-cased-mean-nli-stsb-tr"
 print(f"Embedding modeli (arama motoru) yükleniyor: {embedding_model_name}...")
 model = SentenceTransformer(embedding_model_name)
